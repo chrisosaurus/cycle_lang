@@ -1,0 +1,86 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use v5.10;
+use File::Slurp;
+
+# invoke as
+# ./cycle_lang solution.cl
+# input on stdin
+# output on stdou
+
+# a language for solving problems like
+# http://codegolf.stackexchange.com/questions/57836/fixing-a-fruit-loop-necklace
+die "no source file provided" unless @ARGV;
+my $file = shift @ARGV;
+die "failed to find source file '$file'" unless -e $file;
+warn "ignoring additional arguments" if @ARGV;
+
+my $source = read_file($file);
+
+# example input
+# ccroygbp;kn;de;
+# this specified:
+#   Complete Cycle of roygbp
+#   that the keep character is 'n'
+#   and the discard character is 'e'
+unless( $source =~ m/^ cc(?<cycle>[^;]+); k(?<keep>[^;]+); d(?<discard>[^;]+); $/x ){
+    die "parsing of source file failed";
+}
+
+
+my @order = split //, $+{cycle};
+my $start = $order[0];
+my $end = $order[$#order];
+my $keep = $+{keep};
+my $discard = $+{discard};
+
+my @inputs = split //, <>;
+my @out = ();
+
+my $order_i = 0;
+
+my $index = 0;
+# enforce first is red
+for( ; $index < @inputs; ++$index ){
+    my $i = $inputs[$index];
+
+    if( $i eq $start ){
+        last;
+    }
+
+    push @out, $discard;
+}
+
+# enforce forward ordering
+for( ; $index < @inputs; ++$index ){
+    $order_i = $order_i % @order;
+    my $o = $order[$order_i];
+    my $i = $inputs[$index];
+
+    if( $o eq $i ){
+        ++$order_i;
+        push @out, $keep;
+    } else {
+        push @out, $discard;
+    }
+}
+
+# enforce last is purple
+for( $index = $#inputs; $index >= 0; --$index ){
+     my $out = $out[$index];
+     my $chr = $inputs[$index];
+
+     if( $out eq $discard ){
+        next;
+     }
+
+     if( $chr eq $end ){
+        last;
+     }
+
+     $out[$index] = $discard;
+}
+
+say join "", @out;
+
